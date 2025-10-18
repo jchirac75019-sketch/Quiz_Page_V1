@@ -11470,6 +11470,21 @@ function setupHomeScreen() {
 
 async function startQuiz() {
     showScreen('quiz-screen');
+    
+    // Demande de plein écran
+    try {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+            await elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) { // Safari
+            await elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) { // IE11
+            await elem.msRequestFullscreen();
+        }
+    } catch (err) {
+        console.log('Plein écran refusé ou non supporté:', err);
+    }
+    
     await requestWakeLock();
     startTimer();
     loadNextQuestion();
@@ -11802,6 +11817,14 @@ function setupHomeButton() {
                 if (AppState.quiz.wakeLock) {
                     AppState.quiz.wakeLock.release();
                 }
+                
+                // Quitter le plein écran
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                } else if (document.webkitFullscreenElement) {
+                    document.webkitExitFullscreen();
+                }
+                
                 showScreen('home-screen');
             }
         });
