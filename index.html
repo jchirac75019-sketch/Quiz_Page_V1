@@ -11822,20 +11822,56 @@ function setupHomeButton() {
     if (homeBtn) {
         homeBtn.addEventListener('click', () => {
             if (confirm('هل تريد حقاً العودة للصفحة الرئيسية؟ سيتم فقدان التقدم الحالي.')) {
-                // 1) Arrêter le timer
-                pauseTimer();
-                // 2) Libérer le Wake Lock si actif
+                
+                // === NETTOYAGE COMPLET ET FORCÉ ===
+                
+                // 1) Arrêter immédiatement le timer
+                if (AppState.quiz.timer) {
+                    clearInterval(AppState.quiz.timer);
+                    AppState.quiz.timer = null;
+                }
+                
+                // 2) Libérer le Wake Lock
                 if (AppState.quiz.wakeLock) {
                     AppState.quiz.wakeLock.release();
+                    AppState.quiz.wakeLock = null;
                 }
-                // 3) Effacer la sauvegarde pour empêcher la restauration
-                clearState();            // ← AJOUT
-                // 4) Quitter le plein écran si besoin
-                if (document.fullscreenElement) {
-                    document.exitFullscreen();
+                
+                // 3) Quitter le plein écran
+                try {
+                    if (document.fullscreenElement) {
+                        document.exitFullscreen();
+                    } else if (document.webkitFullscreenElement) {
+                        document.webkitExitFullscreen();
+                    }
+                } catch(e) {
+                    console.log('Sortie plein écran:', e);
                 }
-                // 5) Afficher l'accueil
+                
+                // 4) RÉINITIALISER COMPLÈTEMENT AppState
+                AppState.quiz = {
+                    pages: [],
+                    currentIndex: 0,
+                    correctCount: 0,
+                    wrongCount: 0,
+                    startTime: null,
+                    endTime: null,
+                    elapsedTime: 0,
+                    history: [],
+                    timer: null,
+                    wakeLock: null
+                };
+                
+                // 5) EFFACER TOUTE SAUVEGARDE
+                localStorage.removeItem('quranQuizState');
+                
+                // 6) FORCER L'AFFICHAGE DE L'ACCUEIL
                 showScreen('home-screen');
+                
+                // 7) EMPÊCHER LA RESTAURATION AUTOMATIQUE
+                window.removeEventListener('DOMContentLoaded', restoreQuizIfNeeded);
+                
+                console.log('Retour à l\'accueil forcé et nettoyage complet effectué');
             }
         });
     }
