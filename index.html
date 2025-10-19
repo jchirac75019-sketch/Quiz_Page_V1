@@ -11439,33 +11439,36 @@ function setupHomeScreen() {
     endPageInput.addEventListener('input', validatePageInputs);
     
     startQuizBtn.addEventListener('click', async () => {
-        if (!validatePageInputs()) return;
-        
-        AppState.config.startPage = parseInt(startPageInput.value);
-        AppState.config.endPage = parseInt(endPageInput.value);
-        AppState.config.quizOption = parseInt(document.querySelector('input[name="quiz-option"]:checked').value);
-        AppState.config.showNumbers = document.querySelector('input[name="show-numbers"]:checked').value === 'yes';
-        AppState.config.attempts = document.getElementById('attempts').value;
-        
-        const pageRange = [];
-        for (let i = AppState.config.startPage; i <= AppState.config.endPage; i++) {
-            pageRange.push(i);
-        }
-        AppState.quiz.pages = shuffleArray(pageRange);
-        AppState.quiz.currentIndex = 0;
-        AppState.quiz.correctCount = 0;
-        AppState.quiz.wrongCount = 0;
-        AppState.quiz.elapsedTime = 0;
-        AppState.quiz.history = [];
-        AppState.quiz.startTime = new Date();
-        
-        if (AppState.config.attempts !== 'infinite') {
-            const maxAttempts = parseInt(AppState.config.attempts);
-            AppState.quiz.pages = AppState.quiz.pages.slice(0, maxAttempts);
-        }
-        
-        await startQuiz();
-    });
+    if (!validatePageInputs()) return;        
+
+    clearState();                                // juste après la validation
+
+    AppState.config.startPage = parseInt(startPageInput.value);               
+    AppState.config.endPage   = parseInt(endPageInput.value);                 
+    AppState.config.quizOption = parseInt(document.querySelector('input[name="quiz-option"]:checked').value); 
+    AppState.config.showNumbers = document.querySelector('input[name="show-numbers"]:checked').value === 'yes';
+    AppState.config.attempts   = document.getElementById('attempts').value;    
+
+    const pageRange = [];                       
+    for (let i = AppState.config.startPage; i <= AppState.config.endPage; i++) { 
+        pageRange.push(i);                      
+    }                                           
+    AppState.quiz.pages       = shuffleArray(pageRange); 
+    AppState.quiz.currentIndex= 0;              
+    AppState.quiz.correctCount= 0;              
+    AppState.quiz.wrongCount  = 0;              
+    AppState.quiz.elapsedTime = 0;              
+    AppState.quiz.history     = [];             
+    AppState.quiz.startTime   = new Date();     
+
+    if (AppState.config.attempts !== 'infinite') { 
+        const maxAttempts = parseInt(AppState.config.attempts); 
+        AppState.quiz.pages = AppState.quiz.pages.slice(0, maxAttempts); 
+    }                                           
+
+    await startQuiz();                          
+});                                            
+
 }
 
 async function startQuiz() {
@@ -11610,18 +11613,24 @@ function setupOption1Handlers(pageData) {
     }
     
     document.querySelectorAll('#last-action-buttons button').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const result = e.target.dataset.result;
-            recordAnswer('last', result, pageData);
-            
-            showCoordinates(pageData);
-            
-            setTimeout(() => {
-                AppState.quiz.currentIndex++;
-                loadNextQuestion();
-            }, 2000);
-        });
+    btn.addEventListener('click', (e) => {
+        const result = e.target.dataset.result;
+        recordAnswer('last', result, pageData);
+
+        // --- DÉSACTIVATION IMMÉDIATE pour éviter les clics multiples ---
+        const lastButtons = document.getElementById('last-action-buttons'); // Ligne 1129
+        lastButtons.style.pointerEvents = 'none';  // Bloque tout nouveau clic
+        lastButtons.style.opacity = '0.6';         // Atténue visuellement les boutons
+
+        showCoordinates(pageData);
+        
+        setTimeout(() => {
+            AppState.quiz.currentIndex++;
+            loadNextQuestion();
+        }, 2000);
     });
+});
+
 }
 
 function renderOption2(pageData) {
@@ -11813,18 +11822,19 @@ function setupHomeButton() {
     if (homeBtn) {
         homeBtn.addEventListener('click', () => {
             if (confirm('هل تريد حقاً العودة للصفحة الرئيسية؟ سيتم فقدان التقدم الحالي.')) {
+                // 1) Arrêter le timer
                 pauseTimer();
+                // 2) Libérer le Wake Lock si actif
                 if (AppState.quiz.wakeLock) {
                     AppState.quiz.wakeLock.release();
                 }
-                
-                // Quitter le plein écran
+                // 3) Effacer la sauvegarde pour empêcher la restauration
+                clearState();            // ← AJOUT
+                // 4) Quitter le plein écran si besoin
                 if (document.fullscreenElement) {
                     document.exitFullscreen();
-                } else if (document.webkitFullscreenElement) {
-                    document.webkitExitFullscreen();
                 }
-                
+                // 5) Afficher l'accueil
                 showScreen('home-screen');
             }
         });
@@ -11835,7 +11845,7 @@ function setupNewQuizButton() {
     const newQuizBtn = document.getElementById('new-quiz-btn');
     if (newQuizBtn) {
         newQuizBtn.addEventListener('click', () => {
-            clearState();
+            clearState();  // Efface la sauvegarde
             showScreen('home-screen');
         });
     }
@@ -11850,8 +11860,27 @@ window.addEventListener('DOMContentLoaded', () => {
     setupHomeButton();
     setupNewQuizButton();
     
+    // Restaurer l'état sauvegardé
     loadState();
+    
+    // Si un quiz était en cours, le reprendre automatiquement
+    restoreQuizIfNeeded();
 });
+
+function restoreQuizIfNeeded() {
+    const saved = localStorage.getItem('quranQuizState');
+    if (!saved) return;
+
+    const state = JSON.parse(saved);
+    // Si un quiz est en cours et non terminé
+    if (state.quiz.pages && state.quiz.currentIndex < state.quiz.pages.length) {
+        Object.assign(AppState, state);  // Restauration
+        showScreen('quiz-screen');       // Aller au quiz
+        resumeTimer();                   // Relancer le timer
+        loadNextQuestion();              // Reprendre la question
+    }
+}
+
     </script>
     <!-- ========== FIN DU JAVASCRIPT (CODE) ========== -->
     
