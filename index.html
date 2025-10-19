@@ -654,7 +654,7 @@
     <div id="home-screen" class="screen active">
         <div class="container">
             <header>
-                <h1 class="app-title">اختبار آيات القرآن الكريم</h1>
+                <h1 class="app-title">اختبار آيات وصفحات القرآن الكريم</h1>
                 <p class="subtitle">برواية حفص - 604 صفحة</p>
             </header>
 
@@ -11337,13 +11337,22 @@ function updateTimerDisplay() {
     return timeString;
 }
 
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-        pauseTimer();
-    } else {
-        resumeTimer();
-    }
-});
+ document.addEventListener('visibilitychange', () => {
+     if (document.hidden) {
+         pauseTimer();
+     } else {
+         resumeTimer();
+         requestWakeLock();      // optionnel selon implémentation
+     }
+ });
+ // Empêche le rechargement ou navigation hors du quiz-screen
+ window.addEventListener('beforeunload', (e) => {
+     const current = document.querySelector('.screen.active');
+     if (current && current.id === 'quiz-screen') {
+         e.preventDefault();
+         e.returnValue = '';
+     }
+ });
 
 function saveState() {
     localStorage.setItem('quranQuizState', JSON.stringify(AppState));
@@ -11454,37 +11463,41 @@ function setupHomeScreen() {
     startPageInput.addEventListener('input', validatePageInputs);
     endPageInput.addEventListener('input', validatePageInputs);
     
-    startQuizBtn.addEventListener('click', async () => {
-    if (!validatePageInputs()) return;        
+     startQuizBtn.addEventListener('click', async () => {
+     if (!validatePageInputs()) return;
 
-    clearState();                                // juste après la validation
+     clearState();  // Efface toute ancienne sauvegarde
 
-    AppState.config.startPage = parseInt(startPageInput.value);               
-    AppState.config.endPage   = parseInt(endPageInput.value);                 
-    AppState.config.quizOption = parseInt(document.querySelector('input[name="quiz-option"]:checked').value); 
-    AppState.config.showNumbers = document.querySelector('input[name="show-numbers"]:checked').value === 'yes';
-    AppState.config.attempts   = document.getElementById('attempts').value;    
+     AppState.config.startPage  = parseInt(startPageInput.value);
+     AppState.config.endPage    = parseInt(endPageInput.value);
+     AppState.config.quizOption = parseInt(document.querySelector('input[name="quiz-option"]:checked').value);
+     AppState.config.showNumbers= document.querySelector('input[name="show-numbers"]:checked').value === 'yes';
+     AppState.config.attempts   = document.getElementById('attempts').value;
 
-    const pageRange = [];                       
-    for (let i = AppState.config.startPage; i <= AppState.config.endPage; i++) { 
-        pageRange.push(i);                      
-    }                                           
-    AppState.quiz.pages       = shuffleArray(pageRange); 
-    AppState.quiz.currentIndex= 0;              
-    AppState.quiz.correctCount= 0;              
-    AppState.quiz.wrongCount  = 0;              
-    AppState.quiz.elapsedTime = 0;              
-    AppState.quiz.history     = [];             
-    AppState.quiz.startTime   = new Date();     
+     // Construction de la plage de pages
+     const pageRange = [];
+     for (let i = AppState.config.startPage; i <= AppState.config.endPage; i++) {
+         pageRange.push(i);
+     }
 
-    if (AppState.config.attempts !== 'infinite') { 
-        const maxAttempts = parseInt(AppState.config.attempts); 
-        AppState.quiz.pages = AppState.quiz.pages.slice(0, maxAttempts); 
-    }                                           
+     // Application de la limite de tentatives, si pas infini
+     if (AppState.config.attempts !== 'infinite') {
+         const maxAttempts = parseInt(AppState.config.attempts);
+         pageRange.splice(maxAttempts); // Garde seulement les X premières pages
+     }
 
-    await startQuiz();                          
-});                                            
+     // Mélange et initialisation du quiz
+     AppState.quiz.pages        = shuffleArray(pageRange);
+     AppState.quiz.currentIndex = 0;
+     AppState.quiz.correctCount = 0;
+     AppState.quiz.wrongCount   = 0;
+     AppState.quiz.elapsedTime  = 0;
+     AppState.quiz.history      = [];
+     AppState.quiz.startTime    = Date.now();
 
+     await startQuiz();  // Lance le quiz
+ });
+                                 
 }
 
 async function startQuiz() {
@@ -11944,21 +11957,19 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-window.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        document.getElementById('loading-screen').classList.add('hidden');
-    }, 500);
+ window.addEventListener('DOMContentLoaded', () => {
+     setTimeout(() => {
+         document.getElementById('loading-screen').classList.add('hidden');
+     }, 500);
     
-    setupHomeScreen();
-    setupHomeButton();
-    setupNewQuizButton();
+     setupHomeScreen();
+     setupHomeButton();
+     setupNewQuizButton();
     
-    // Restaurer l'état sauvegardé
-    loadState();
-    
-    // Si un quiz était en cours, le reprendre automatiquement
-    restoreQuizIfNeeded();
-});
+     // Plus de restauration automatique ici
+     // loadState();        ← supprimé
+     // restoreQuizIfNeeded(); ← supprimé
+ });
 
 function restoreQuizIfNeeded() {
     const saved = localStorage.getItem('quranQuizState');
