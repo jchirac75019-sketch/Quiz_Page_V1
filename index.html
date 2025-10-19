@@ -369,13 +369,13 @@
 
         .verse-section {
             flex: 1;
-            padding: 30px;
+            padding: 15px;           /* Réduit de 30px à 15px */
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
-            gap: 15px;
+            gap: 8px;                /* Réduit de 15px à 8px */
         }
 
         .verse-section.first-verse {
@@ -398,14 +398,14 @@
             font-size: 36px;
             font-weight: 700;
             color: var(--primary-color);
-            margin: 1px 0;    /* <— réduit l’espace au-dessus et au-dessous */
+            margin: 0 0 5px 0;    /* Aucun espace au-dessus, 5px en-dessous */
         }
 
         .verse-label {
             font-size: 20px;
             font-weight: 600;
             color: var(--primary-color);
-            margin-bottom: 20px;
+            margin-bottom: 8px;    /* Réduit de 20px à 8px */
         }
 
         .verse-text {
@@ -571,68 +571,82 @@
         }
 
         @media (max-width: 768px) {
-            .screen {
-                padding: 10px;
-            }
+    .screen {
+        padding: 10px;
+    }
 
-            .config-section {
-                padding: 20px;
-            }
+    .config-section {
+        padding: 20px;
+    }
 
-            .app-title {
-                font-size: 24px;
-            }
+    .app-title {
+        font-size: 24px;
+    }
 
-            .page-inputs {
-                grid-template-columns: 1fr;
-            }
+    .page-inputs {
+        grid-template-columns: 1fr;
+    }
 
-            .quiz-header {
-                flex-direction: column;
-                align-items: stretch;
-            }
+    .quiz-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
 
-            .quiz-stats {
-                justify-content: space-between;
-                width: 100%;
-            }
+    .quiz-stats {
+        justify-content: space-between;
+        width: 100%;
+    }
 
-            .verse-text {
-                font-size: 22px;
-            }
+    .verse-text {
+        font-size: 22px;
+        margin: 10px 0;      /* Réduit l’espace autour du texte */
+        padding: 15px;       /* Réduit le padding interne */
+        min-height: 80px;    /* Hauteur minimale réduite */
+    }
 
-            .page-number {
-                font-size: 28px;
-            }
+    .page-number {
+        font-size: 28px;
+        margin: 0 0 3px 0;   /* Espace minimal sous le titre */
+    }
 
-            .action-buttons {
-                flex-direction: column;
-            }
+    .verse-label {
+        font-size: 18px;
+        margin-bottom: 5px;  /* Espace réduit sous le label */
+    }
 
-            .action-buttons .btn {
-                width: 100%;
-                min-width: unset;
-            }
+    .verse-section {
+        padding: 10px;       /* Padding réduit autour du bloc */
+        gap: 5px;            /* Espacement interne réduit */
+    }
 
-            .results-summary {
-                grid-template-columns: 1fr;
-            }
-        }
+    .action-buttons {
+        flex-direction: column;
+    }
 
-        .hidden {
-            display: none !important;
-        }
+    .action-buttons .btn {
+        width: 100%;
+        min-width: unset;
+    }
 
-    @media (max-height: 600px) {
-        .config-section {
-            padding: 5px;
-            max-height: calc(100vh - 100px);
-        }
-        header {
-            margin-bottom: 5px;
-        }
-        .app-title {
-            font-size: 20px;
+    .results-summary {
+        grid-template-columns: 1fr;
+    }
+}
+
+.hidden {
+    display: none !important;
+}
+
+@media (max-height: 600px) {
+    .config-section {
+        padding: 5px;
+        max-height: calc(100vh - 100px);
+    }
+    header {
+        margin-bottom: 5px;
+    }
+    .app-title {
+        font-size: 20px;
     }
     .subtitle {
         font-size: 14px;
