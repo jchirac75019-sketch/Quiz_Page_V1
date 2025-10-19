@@ -11251,6 +11251,22 @@ const AppState = {
     cache: {}
 };
 
+// Empêche la mise en veille de l'écran
+async function requestWakeLock() {
+    try {
+        if ('wakeLock' in navigator && !AppState.quiz.wakeLock) {
+            AppState.quiz.wakeLock = await navigator.wakeLock.request('screen');
+            AppState.quiz.wakeLock.addEventListener('release', () => {
+                console.log('Wake Lock libéré');
+                AppState.quiz.wakeLock = null;
+            });
+            console.log('Wake Lock activé');
+        }
+    } catch (err) {
+        console.error('Erreur Wake Lock :', err);
+    }
+}
+
 function toFrenchNumbers(str) {
     const arabicToFrench = {
         '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
@@ -11682,6 +11698,7 @@ function renderOption3(pageData) {
 function setupSingleVerseHandlers(pageData, type) {
     const verseData = type === 'first' ? pageData.firstVerse : pageData.lastVerse;
     
+    // Affiche le verset
     document.getElementById('show-verse-btn').addEventListener('click', () => {
         document.getElementById('verse-text').textContent = verseData.text;
         document.getElementById('verse-content').style.display = 'block';
@@ -11692,6 +11709,7 @@ function setupSingleVerseHandlers(pageData, type) {
         }
     });
     
+    // Affiche le numéro si nécessaire
     if (AppState.config.showNumbers) {
         document.getElementById('show-number-btn').addEventListener('click', () => {
             const verseText = document.getElementById('verse-text');
@@ -11702,11 +11720,17 @@ function setupSingleVerseHandlers(pageData, type) {
         });
     }
     
+    // Gestion des clics sur les boutons de réponse
     document.querySelectorAll('#action-buttons button').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const result = e.target.dataset.result;
             recordAnswer(type, result, pageData);
-            
+
+            // Désactivation immédiate des boutons pour empêcher plusieurs clics
+            const actionButtons = document.getElementById('action-buttons');   // Ligne ~1214
+            actionButtons.style.pointerEvents = 'none'; // Bloque tout nouveau clic
+            actionButtons.style.opacity = '0.6';        // Atténue visuellement
+
             showCoordinates(pageData);
             
             setTimeout(() => {
@@ -11716,6 +11740,7 @@ function setupSingleVerseHandlers(pageData, type) {
         });
     });
 }
+
 
 function showCoordinates(pageData) {
     const surahsList = pageData.surahs.join(' - ');
@@ -11877,6 +11902,31 @@ function setupHomeButton() {
     }
 }
 
+function forceHomeScreen() {
+    // Nettoyage total sans confirmation
+    if (AppState.quiz.timer) {
+        clearInterval(AppState.quiz.timer);
+        AppState.quiz.timer = null;
+    }
+    if (AppState.quiz.wakeLock) {
+        AppState.quiz.wakeLock.release();
+        AppState.quiz.wakeLock = null;
+    }
+    
+    // Réinitialisation complète
+    AppState.quiz = {
+        pages: [], currentIndex: 0, correctCount: 0, wrongCount: 0,
+        startTime: null, endTime: null, elapsedTime: 0, history: [],
+        timer: null, wakeLock: null
+    };
+    
+    // Effacement forcé
+    localStorage.removeItem('quranQuizState');
+    
+    // Affichage forcé de l'accueil
+    showScreen('home-screen');
+}
+
 function setupNewQuizButton() {
     const newQuizBtn = document.getElementById('new-quiz-btn');
     if (newQuizBtn) {
@@ -11886,6 +11936,13 @@ function setupNewQuizButton() {
         });
     }
 }
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        forceHomeScreen();
+        console.log('Retour forcé à l\'accueil via Échap');
+    }
+});
 
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
@@ -11907,13 +11964,19 @@ function restoreQuizIfNeeded() {
     const saved = localStorage.getItem('quranQuizState');
     if (!saved) return;
 
+    // VÉRIFICATION DE SÉCURITÉ : si on est déjà sur l'accueil, ne pas restaurer
+    const currentScreen = document.querySelector('.screen.active');
+    if (currentScreen && currentScreen.id === 'home-screen') {
+        console.log('Déjà sur l\'écran d\'accueil, pas de restauration');
+        return;
+    }
+
     const state = JSON.parse(saved);
-    // Si un quiz est en cours et non terminé
     if (state.quiz.pages && state.quiz.currentIndex < state.quiz.pages.length) {
-        Object.assign(AppState, state);  // Restauration
-        showScreen('quiz-screen');       // Aller au quiz
-        resumeTimer();                   // Relancer le timer
-        loadNextQuestion();              // Reprendre la question
+        Object.assign(AppState, state);
+        showScreen('quiz-screen');
+        resumeTimer();
+        loadNextQuestion();
     }
 }
 
